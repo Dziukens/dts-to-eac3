@@ -1,16 +1,16 @@
-# Zmiany
+# Changelog
 
 ## v1.0.0
 
-Pierwsze wydanie.
+First release.
 
-- Konwersja ścieżki **DTS / DTS-HD Master Audio** do **E-AC3 (Dolby Digital Plus) 5.1, 48 kHz**.
-- Oryginalna ścieżka jest wyciągana bez strat do `.dts` (mkvextract dla MKV, ffmpeg dla innych kontenerów).
-- Automatyczny downmix 7.1 → 5.1 i resampling 96 kHz → 48 kHz.
-- Wykrywanie przesunięcia ścieżki względem obrazu, z gotową wartością `--sync` do remuxu.
-- `convert.cmd`: przeciągnij jeden lub kilka filmów albo uruchom dwuklikiem i wklej ścieżkę.
-- `setup.cmd`: instalacja ffmpeg i MKVToolNix przez winget. Brakujące narzędzia doinstalowują się też same przy pierwszej konwersji.
-- Działa w Windows PowerShell 5.1 (czysty Windows 10/11), bez zmiany polityki wykonywania skryptów.
+- Converts a **DTS / DTS-HD Master Audio** track to **E-AC3 (Dolby Digital Plus) 5.1, 48 kHz**.
+- Extracts the original track losslessly to `.dts` (mkvextract for MKV, ffmpeg for other containers).
+- Automatic 7.1 → 5.1 downmix and 96 kHz → 48 kHz resampling.
+- Detects a track delay relative to the video and prints the `--sync` value to use for the remux.
+- `convert.cmd`: drag one or more movies onto it, or double-click it and paste a path.
+- `setup.cmd`: installs ffmpeg and MKVToolNix via winget. Missing tools are also installed automatically on the first conversion.
+- Runs on Windows PowerShell 5.1 (a clean Windows 10/11 install) without changing the script execution policy.
 
-**Instalacja:** pobierz `dts-to-eac3-v1.0.0.zip`, przed rozpakowaniem odblokuj go
-(prawy przycisk → Właściwości → Odblokuj), rozpakuj i przeciągnij film na `convert.cmd`.
+**Installation:** download `dts-to-eac3-v1.0.0.zip`, unblock it before extracting
+(right-click → Properties → Unblock), extract it and drag a movie onto `convert.cmd`.
