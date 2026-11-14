@@ -1,0 +1,18 @@
+# Pliki wynikowe i multimedia - nie trafiają do repozytorium
+eac3_out/
+*.mkv
+*.mka
+*.m2ts
+*.mp4
+*.dts
+*.dtshd
+*.eac3
+*.ec3
+*.ac3
+
+# System / edytory
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+.claude/settings.local.json
