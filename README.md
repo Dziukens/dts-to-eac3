@@ -26,8 +26,6 @@ to the movie (remux), without re-encoding the video.
 
 - Windows 10 (1809 or later) or Windows 11
 - `winget`: [App Installer](https://apps.microsoft.com/detail/9NBLGGH4NWNX) from the Microsoft Store, included in Windows 11 by default
-- Free disk space: about 5–7 GB per movie (the original `.dts` track plus the new `.eac3`),
-  plus the size of the movie itself for the remux
 
 ## Quick start
 
@@ -79,7 +77,7 @@ The same options also work with `convert.cmd`, e.g. `convert.cmd "D:\Movies\movi
 | `-Bitrate` | `1024k` | `640k` (streaming quality), `1024k` (very good), `1536k` (like DD+ on Blu-ray) |
 | `-OutDir` | `eac3_out\` next to the movie | output folder |
 | `-ListTracks` | | only lists the audio tracks |
-| `-SkipExtract` | | encodes straight from the movie without saving the `.dts` (saves disk space) |
+| `-SkipExtract` | | encodes straight from the movie without saving the `.dts` |
 | `-Language` | `auto` | console language: `en`, `pl` or `auto` |
 
 ## Language
@@ -146,13 +144,16 @@ and in `--track-order`, `1:0` means "second file, track 0".
 | `Messages.ps1` | console messages for each language and language selection |
 | `CHANGELOG.md` | change history, used for the release notes |
 | `build-release.ps1` | builds the release package |
+| `tests\Test-Convert.ps1` | end-to-end tests on a generated sample movie (PS 5.1 and, if installed, PS 7) |
 
 `.ps1` files must be saved as UTF-8 **with BOM** (otherwise PowerShell 5.1 garbles Polish characters),
 and `.cmd` files as plain ASCII. All user-facing text belongs in `Messages.ps1`, not in the `.cmd` files. `.gitattributes` enforces CRLF line endings.
 
 **New release:**
 
-1. Add a `## vX.Y.Z` section to `CHANGELOG.md` and commit.
-2. `.\build-release.ps1 -Version X.Y.Z` creates `dist\dts-to-eac3-vX.Y.Z.zip` and `dist\release-notes-vX.Y.Z.md`.
-3. `git tag vX.Y.Z` and `git push origin vX.Y.Z`.
-4. On GitHub: **Releases → Draft a new release**, pick the tag, paste the notes and attach the ZIP.
+1. Run the tests: `.\tests\Test-Convert.ps1` (every case should print `PASS`).
+2. Add a `## vX.Y.Z` section to `CHANGELOG.md` and commit.
+3. `.\build-release.ps1 -Version X.Y.Z` creates `dist\dts-to-eac3-vX.Y.Z.zip` and `dist\release-notes-vX.Y.Z.md`.
+   It stops if there are uncommitted changes, because the ZIP is built from the last commit.
+4. `git tag vX.Y.Z` and `git push origin vX.Y.Z`.
+5. On GitHub: **Releases → Draft a new release**, pick the tag, paste the notes and attach the ZIP.

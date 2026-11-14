@@ -10,6 +10,17 @@
 - MKVToolNix output follows the chosen language.
 - Docs: English README (Polish version in `README.pl.md`).
 
+**Fixes**
+
+- Redirecting the output to a file (e.g. `*> log.txt`) no longer makes every conversion fail in Windows PowerShell 5.1.
+- Dropping several files into the console after double-clicking `convert.cmd` now works.
+- MKVToolNix is found in 32-bit PowerShell too, instead of being reinstalled.
+- Missing tools or a failed installation show a clear message instead of a PowerShell error.
+- Cleaner output: no stray comma for tracks without a profile, no harmless ffmpeg warnings.
+
+**Installation:** download `dts-to-eac3-v1.1.0.zip`, unblock it before extracting
+(right-click → Properties → Unblock), extract it and drag a movie onto `convert.cmd`.
+
 ## v1.0.0
 
 First release.

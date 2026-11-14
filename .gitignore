@@ -1,4 +1,4 @@
-# Pliki wynikowe i multimedia - nie trafiają do repozytorium
+# Output and media files - never committed
 eac3_out/
 dist/
 *.mkv
@@ -11,7 +11,7 @@ dist/
 *.ec3
 *.ac3
 
-# System / edytory
+# OS / editors
 Thumbs.db
 desktop.ini
 .vscode/

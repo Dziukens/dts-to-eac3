@@ -7,11 +7,15 @@
     Developer files are left out (export-ignore in .gitattributes). Scripts have CRLF line endings.
     The release notes are the "## v<version>" section of CHANGELOG.md, ready to paste on GitHub.
 
+    Stops if tracked files have uncommitted changes, so the ZIP always matches a commit.
+    -Force builds anyway (the changes are still left out of the ZIP).
+
 .EXAMPLE
     .\build-release.ps1 -Version 1.0.0
 #>
 param(
-    [Parameter(Mandatory)][ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version
+    [Parameter(Mandatory)][ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version,
+    [switch]$Force
 )
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
@@ -22,7 +26,11 @@ $dist = Join-Path $PSScriptRoot 'dist'
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
 
 $dirty = git status --porcelain --untracked-files=no
-if ($dirty) { Write-Warning "You have uncommitted changes - they won't be in the ZIP (built from HEAD):`n$($dirty -join "`n")" }
+if ($dirty) {
+    $msg = "Uncommitted changes - they would not be in the ZIP (built from HEAD):`n$($dirty -join "`n")"
+    if (-not $Force) { throw "$msg`nCommit them first, or use -Force." }
+    Write-Warning $msg
+}
 
 # --- ZIP ----------------------------------------------------------------------
 $zip = Join-Path $dist "$name.zip"

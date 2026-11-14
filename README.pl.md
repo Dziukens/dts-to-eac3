@@ -26,8 +26,6 @@ nową ścieżkę E-AC3, którą potem dodajesz do filmu (remux), bez ponownego k
 
 - Windows 10 (1809 lub nowszy) albo Windows 11
 - `winget`: [Instalator aplikacji](https://apps.microsoft.com/detail/9NBLGGH4NWNX) z Microsoft Store, domyślnie jest w Windows 11
-- Wolne miejsce na dysku: około 5–7 GB na film (oryginalna ścieżka `.dts` plus nowa `.eac3`),
-  a do remuxu dodatkowo tyle, ile zajmuje sam film
 
 ## Szybki start
 
@@ -80,7 +78,7 @@ Te same opcje działają też z `convert.cmd`, np. `convert.cmd "D:\Filmy\film.m
 | `-Bitrate` | `1024k` | `640k` (jakość streamingowa), `1024k` (bardzo dobra), `1536k` (jak DD+ na Blu-ray) |
 | `-OutDir` | `eac3_out\` obok filmu | folder wyjściowy |
 | `-ListTracks` | | tylko wypisuje ścieżki audio |
-| `-SkipExtract` | | koduje bezpośrednio z filmu, bez zapisywania `.dts` (oszczędza miejsce) |
+| `-SkipExtract` | | koduje bezpośrednio z filmu, bez zapisywania `.dts` |
 | `-Language` | `auto` | język komunikatów: `pl`, `en` albo `auto` |
 
 ## Język
@@ -147,13 +145,16 @@ a w `--track-order` zapis `1:0` oznacza „drugi plik, ścieżka 0”.
 | `Messages.ps1` | komunikaty konsoli dla każdego języka i wybór języka |
 | `CHANGELOG.md` | historia zmian, z niej powstaje opis wydania |
 | `build-release.ps1` | buduje paczkę do wydania |
+| `tests\Test-Convert.ps1` | testy całego procesu na wygenerowanym filmie (PS 5.1 i, jeśli jest zainstalowany, PS 7) |
 
 Pliki `.ps1` muszą być zapisane w UTF-8 **z BOM** (inaczej PowerShell 5.1 psuje polskie znaki),
 a `.cmd` w czystym ASCII. Wszystkie teksty dla użytkownika trzymaj w `Messages.ps1`, a nie w plikach `.cmd`. Końce linii CRLF pilnuje `.gitattributes`.
 
 **Nowe wydanie:**
 
-1. Dopisz sekcję `## vX.Y.Z` do `CHANGELOG.md` i zacommituj zmiany.
-2. `.\build-release.ps1 -Version X.Y.Z` tworzy `dist\dts-to-eac3-vX.Y.Z.zip` i `dist\release-notes-vX.Y.Z.md`.
-3. `git tag vX.Y.Z` oraz `git push origin vX.Y.Z`.
-4. Na GitHubie: **Releases → Draft a new release**, wybierz tag, wklej opis i dołącz ZIP.
+1. Uruchom testy: `.\tests\Test-Convert.ps1` (każdy przypadek powinien wypisać `PASS`).
+2. Dopisz sekcję `## vX.Y.Z` do `CHANGELOG.md` i zacommituj zmiany.
+3. `.\build-release.ps1 -Version X.Y.Z` tworzy `dist\dts-to-eac3-vX.Y.Z.zip` i `dist\release-notes-vX.Y.Z.md`.
+   Przerywa, jeśli są niezacommitowane zmiany, bo ZIP powstaje z ostatniego commita.
+4. `git tag vX.Y.Z` oraz `git push origin vX.Y.Z`.
+5. Na GitHubie: **Releases → Draft a new release**, wybierz tag, wklej opis i dołącz ZIP.

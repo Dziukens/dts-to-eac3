@@ -57,18 +57,40 @@ function Find-Tool([string]$Name, [string[]]$Fallbacks) {
 
 function Get-Tools {
     $wingetPkgs = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages\Gyan.FFmpeg*\*\bin'
-    $mkvDir     = Join-Path $env:ProgramFiles 'MKVToolNix'
+    # ProgramW6432 = the 64-bit Program Files, also when running in 32-bit PowerShell.
+    $mkvDirs = @($env:ProgramW6432, $env:ProgramFiles) | Where-Object { $_ } |
+        ForEach-Object { Join-Path $_ 'MKVToolNix\mkvextract.exe' }
     @{
         ffmpeg     = Find-Tool 'ffmpeg'     @("$wingetPkgs\ffmpeg.exe")
         ffprobe    = Find-Tool 'ffprobe'    @("$wingetPkgs\ffprobe.exe")
-        mkvextract = Find-Tool 'mkvextract' @("$mkvDir\mkvextract.exe")
+        mkvextract = Find-Tool 'mkvextract' $mkvDirs
     }
 }
 
+# Runs an external program. ffmpeg/mkvextract write progress to stderr; in Windows PowerShell 5.1
+# redirected stderr (e.g. '*> log.txt') would otherwise stop the script under 'Stop'.
+# Success is decided by the exit code only.
+function Invoke-Native([scriptblock]$Command) {
+    $ErrorActionPreference = 'Continue'
+    & $Command
+}
+
 function Get-Probe([string]$Path) {
-    $json = & $ffprobe -v error -show_streams -show_format -of json -i $Path
+    $json = Invoke-Native { & $ffprobe -v error -show_streams -show_format -of json -i $Path }
     if ($LASTEXITCODE -ne 0) { throw (T 'ProbeFailed' $Path) }
-    ($json -join "`n") | ConvertFrom-Json
+    (@($json) -join "`n") | ConvertFrom-Json
+}
+
+# Splits text typed or dropped into the console into file paths:
+# a single path (with or without quotes) or several paths in quotes.
+function Split-PathList([string]$Text) {
+    $Text = "$Text".Trim([char[]](0xFEFF, 32, 9, 13, 10))   # BOM + whitespace
+    if (-not $Text) { return @() }
+    $whole = $Text.Trim('"')
+    try { if (Test-Path -LiteralPath $whole -PathType Leaf) { return @($whole) } } catch { }
+    @([regex]::Matches($Text, '"([^"]+)"|(\S+)') | ForEach-Object {
+        if ($_.Groups[1].Success) { $_.Groups[1].Value } else { $_.Groups[2].Value }
+    })
 }
 
 # --- Converting one file ------------------------------------------------------
@@ -96,7 +118,7 @@ function Convert-One([string]$Path) {
         $row[(T 'ColTitle')]      = $_.tags.title
         $row['Start_s']           = $_.start_time
         [pscustomobject]$row
-    } | Format-Table -AutoSize | Out-Host
+    } | Format-Table -AutoSize | Out-String -Width 300 | Write-Host   # Write-Host: also goes into '*>' logs
 
     if ($ListTracks) { return }
 
@@ -107,9 +129,10 @@ function Convert-One([string]$Path) {
         $track = $audio | Where-Object { $_.codec_name -eq 'dts' } | Select-Object -First 1
         if (-not $track) { throw (T 'NoDts') }
     }
-    $idx  = [int]$track.index
-    $lang = if ($track.tags.language) { $track.tags.language } else { 'und' }
-    Write-Host (T 'Selected' $idx $track.codec_name $track.profile $track.channels $track.channel_layout $track.sample_rate $lang) -ForegroundColor Green
+    $idx   = [int]$track.index
+    $lang  = if ($track.tags.language) { $track.tags.language } else { 'und' }
+    $codec = ("{0} {1}" -f $track.codec_name, $track.profile).Trim()
+    Write-Host (T 'Selected' $idx $codec $track.channels $track.channel_layout $track.sample_rate $lang) -ForegroundColor Green
 
     # Track delay relative to the video - raw .dts/.eac3 files don't store it.
     $video = $probe.streams | Where-Object { $_.codec_type -eq 'video' } | Select-Object -First 1
@@ -128,9 +151,9 @@ function Convert-One([string]$Path) {
         Write-Host ("`n" + (T 'Extracting' $dtsFile)) -ForegroundColor Cyan
         if (@('.mkv', '.mka', '.webm') -contains [IO.Path]::GetExtension($Path).ToLower()) {
             # In MKV, the mkvmerge/mkvextract track ID equals the ffprobe stream index.
-            & $mkvextract --ui-language $script:Lang $Path tracks "${idx}:$dtsFile"
+            Invoke-Native { & $mkvextract --ui-language $script:Lang $Path tracks "${idx}:$dtsFile" }
         } else {
-            & $ffmpeg -hide_banner -loglevel warning -stats -y -i $Path -map $mapArg -c:a copy -f dts $dtsFile
+            Invoke-Native { & $ffmpeg -hide_banner -loglevel error -stats -y -i $Path -map $mapArg -c:a copy -f dts $dtsFile }
         }
         if ($LASTEXITCODE -ne 0) { throw (T 'ExtractFailed' $LASTEXITCODE) }
         $source = $dtsFile
@@ -155,8 +178,10 @@ function Convert-One([string]$Path) {
 
     $eac3File = Join-Path $outDir "$baseName.$idx.$lang.eac3"
     Write-Host ("`n" + (T 'Converting' $Bitrate $eac3File)) -ForegroundColor Cyan
-    & $ffmpeg -hide_banner -loglevel warning -stats -y -i $source -map $mapArg -vn -sn -dn `
-        -af ($filters -join ',') -c:a eac3 -b:a $Bitrate -f eac3 $eac3File
+    Invoke-Native {
+        & $ffmpeg -hide_banner -loglevel error -stats -y -i $source -map $mapArg -vn -sn -dn `
+            -af ($filters -join ',') -c:a eac3 -b:a $Bitrate -f eac3 $eac3File
+    }
     if ($LASTEXITCODE -ne 0) { throw (T 'ConvertFailed' $LASTEXITCODE) }
 
     # Verification
@@ -171,24 +196,28 @@ function Convert-One([string]$Path) {
 }
 
 # --- Main -----------------------------------------------------------------------
-$tools = Get-Tools
-if ($tools.Values -contains $null) {
-    Write-Host (T 'MissingTools') -ForegroundColor Yellow
-    & (Join-Path $PSScriptRoot 'Setup.ps1') -Language $script:Lang
+try {
     $tools = Get-Tools
-    $missing = @($tools.Keys | Where-Object { -not $tools[$_] })
-    if ($missing) { throw (T 'StillMissing' ($missing -join ', ')) }
+    if ($tools.Values -contains $null) {
+        Write-Host (T 'MissingTools') -ForegroundColor Yellow
+        & (Join-Path $PSScriptRoot 'Setup.ps1') -Language $script:Lang
+        $tools = Get-Tools
+        $missing = @($tools.Keys | Where-Object { -not $tools[$_] })
+        if ($missing) { throw (T 'StillMissing' ($missing -join ', ')) }
+    }
+} catch {
+    Write-Host ((T 'ErrorPrefix') + $_.Exception.Message) -ForegroundColor Red
+    exit 1
 }
 $ffmpeg, $ffprobe, $mkvextract = $tools.ffmpeg, $tools.ffprobe, $tools.mkvextract
 # Use the higher-quality soxr resampler only if this ffmpeg build has it.
-$hasSoxr = (& $ffmpeg -hide_banner -buildconf | Out-String) -match 'enable-libsoxr'
+$hasSoxr = (Invoke-Native { & $ffmpeg -hide_banner -buildconf } | Out-String) -match 'enable-libsoxr'
 
 $files = @($InputFile | Where-Object { $_ })
 if (-not $files) {
     Write-Host (T 'Prompt')
-    $answer = "$(Read-Host (T 'PromptLabel'))".Trim().Trim('"')
-    if (-not $answer) { exit 0 }
-    $files = @($answer)
+    $files = Split-PathList (Read-Host (T 'PromptLabel'))
+    if (-not $files) { exit 0 }
 }
 
 $failed = 0
