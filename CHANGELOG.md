@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.1.0
+
+- Console messages in **English** and **Polish**. Choose with `-Language en|pl`
+  (also via `convert.cmd` / `setup.cmd`), the `DTS_TO_EAC3_LANG` environment variable,
+  or automatically from the Windows display language.
+- `Convert-DtsToEac3.ps1` accepts several files at once and asks for a path when run without one.
+  A failed file no longer stops the rest, and a summary is printed at the end.
+- MKVToolNix output follows the chosen language.
+- Docs: English README (Polish version in `README.pl.md`).
+
 ## v1.0.0
 
 First release.

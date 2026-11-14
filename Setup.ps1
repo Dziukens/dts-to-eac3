@@ -1,9 +1,16 @@
 ﻿<#
 .SYNOPSIS
+    Installs the tools needed by Convert-DtsToEac3.ps1: ffmpeg and MKVToolNix (via winget).
     Instaluje narzędzia potrzebne do Convert-DtsToEac3.ps1: ffmpeg i MKVToolNix (przez winget).
-    Bezpieczne do wielokrotnego uruchamiania - pomija to, co już jest zainstalowane.
+    Safe to run repeatedly - skips whatever is already installed.
 #>
+param(
+    # Console language: auto (DTS_TO_EAC3_LANG / Windows language), en, pl.
+    [ValidateSet('auto', 'en', 'pl')][string]$Language = 'auto'
+)
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'Messages.ps1')
+Set-Language (Resolve-Language $Language)
 
 $packages = @(
     @{
@@ -20,23 +27,18 @@ $packages = @(
 
 $toInstall = @($packages | Where-Object { -not (& $_.Check) })
 foreach ($p in $packages) {
-    if ($toInstall -notcontains $p) { Write-Host "$($p.Id): już zainstalowany" -ForegroundColor Green }
+    if ($toInstall -notcontains $p) { Write-Host (T 'AlreadyInstalled' $p.Id) -ForegroundColor Green }
 }
 if (-not $toInstall) { return }
 
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    Write-Host @'
-Nie znaleziono winget. Zainstaluj "Instalator aplikacji" (App Installer) ze sklepu Microsoft Store
-i uruchom setup ponownie, albo zainstaluj narzędzia ręcznie:
-  ffmpeg:     https://www.gyan.dev/ffmpeg/builds/   (dodaj folder bin do PATH)
-  MKVToolNix: https://mkvtoolnix.download/downloads.html#windows
-'@ -ForegroundColor Red
-    throw 'Brak winget.'
+    Write-Host (T 'NoWinget') -ForegroundColor Red
+    throw (T 'NoWingetShort')
 }
 
 foreach ($p in $toInstall) {
-    Write-Host "Instaluję $($p.Id)..." -ForegroundColor Cyan
+    Write-Host (T 'Installing' $p.Id) -ForegroundColor Cyan
     winget install --id $p.Id -e --source winget --accept-source-agreements --accept-package-agreements
-    if (-not (& $p.Check)) { throw "Instalacja $($p.Id) nie powiodła się (kod winget: $LASTEXITCODE)." }
+    if (-not (& $p.Check)) { throw (T 'InstallFailed' $p.Id $LASTEXITCODE) }
 }
-Write-Host "`nGotowe. Narzędzia są zainstalowane." -ForegroundColor Green
+Write-Host ("`n" + (T 'SetupDone')) -ForegroundColor Green

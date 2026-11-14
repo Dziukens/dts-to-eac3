@@ -13,8 +13,7 @@ to the movie (remux), without re-encoding the video.
 - Drag and drop, including several movies at once.
 - Installs missing tools (ffmpeg, MKVToolNix) automatically via `winget`.
 - Works on a clean Windows install: no PowerShell 7 and no execution policy changes needed.
-
-> The tool's console messages are in Polish.
+- Console messages in English or Polish ([see Language](#language)).
 
 ## How it works
 
@@ -62,20 +61,40 @@ If the script prints a warning about a **track delay** (in ms), note the value: 
 
 ```powershell
 # list the audio tracks in a file
-.\Convert-DtsToEac3.ps1 -InputFile "D:\Movies\movie.mkv" -ListTracks
+.\Convert-DtsToEac3.ps1 "D:\Movies\movie.mkv" -ListTracks
+
+# several files at once
+.\Convert-DtsToEac3.ps1 "D:\Movies\a.mkv" "D:\Movies\b.mkv"
 
 # a specific track (Index from the list), a different bitrate and output folder
-.\Convert-DtsToEac3.ps1 -InputFile "D:\Movies\movie.mkv" -TrackIndex 2 -Bitrate 1536k -OutDir "D:\Movies\out"
+.\Convert-DtsToEac3.ps1 "D:\Movies\movie.mkv" -TrackIndex 2 -Bitrate 1536k -OutDir "D:\Movies\out"
 ```
+
+The same options also work with `convert.cmd`, e.g. `convert.cmd "D:\Movies\movie.mkv" -Bitrate 1536k`.
 
 | Parameter | Default | Description |
 |---|---|---|
-| `-InputFile` | (required) | the movie file (MKV, M2TS, MP4…) |
+| `-InputFile` | asks for a path | one or more movie files (MKV, M2TS, MP4…); the parameter name can be omitted |
 | `-TrackIndex` | first DTS track | track index from `-ListTracks`; can also be a track in another format (e.g. TrueHD, FLAC) |
 | `-Bitrate` | `1024k` | `640k` (streaming quality), `1024k` (very good), `1536k` (like DD+ on Blu-ray) |
 | `-OutDir` | `eac3_out\` next to the movie | output folder |
 | `-ListTracks` | | only lists the audio tracks |
 | `-SkipExtract` | | encodes straight from the movie without saving the `.dts` (saves disk space) |
+| `-Language` | `auto` | console language: `en`, `pl` or `auto` |
+
+## Language
+
+Console messages are available in **English** and **Polish**. The language is chosen in this order:
+
+1. The `-Language en` / `-Language pl` parameter, e.g. `convert.cmd movie.mkv -Language en`
+   or `setup.cmd -Language en`.
+2. The `DTS_TO_EAC3_LANG` environment variable. To set it permanently (open a new window afterwards):
+   ```bat
+   setx DTS_TO_EAC3_LANG en
+   ```
+3. The Windows display language: Polish → `pl`, any other → `en`.
+
+To add a language, add a section to [`Messages.ps1`](Messages.ps1). Any missing text falls back to English.
 
 ## Remux
 
@@ -112,9 +131,9 @@ and in `--track-order`, `1:0` means "second file, track 0".
 | Problem | Solution |
 |---|---|
 | "Windows protected your PC" or a security warning when running a `.cmd` | The ZIP wasn't unblocked before extracting. Click **More info → Run anyway**, or unblock the ZIP and extract it again. |
-| `Nie znaleziono winget` (winget not found) | Install [App Installer](https://apps.microsoft.com/detail/9NBLGGH4NWNX), or install [ffmpeg](https://www.gyan.dev/ffmpeg/builds/) (add its `bin` folder to PATH) and [MKVToolNix](https://mkvtoolnix.download/downloads.html#windows) manually. |
+| `winget was not found` | Install [App Installer](https://apps.microsoft.com/detail/9NBLGGH4NWNX), or install [ffmpeg](https://www.gyan.dev/ffmpeg/builds/) (add its `bin` folder to PATH) and [MKVToolNix](https://mkvtoolnix.download/downloads.html#windows) manually. |
 | PowerShell blocks the `.ps1` when run directly | `powershell -ExecutionPolicy Bypass -File .\Convert-DtsToEac3.ps1 -InputFile "..."` |
-| `Brak ścieżki DTS` (no DTS track) | The file has no DTS track. Check `-ListTracks` and pick a track with `-TrackIndex`. |
+| `No DTS track found` | The file has no DTS track. Check `-ListTracks` and pick a track with `-TrackIndex`. |
 | `ffmpeg` doesn't work in a terminal right after installation | Open a new terminal to refresh PATH. The script itself finds ffmpeg either way. |
 
 ## For developers
@@ -124,11 +143,12 @@ and in `--track-order`, `1:0` means "second file, track 0".
 | `convert.cmd`, `setup.cmd` | launchers: run the `.ps1` scripts with `-ExecutionPolicy Bypass` |
 | `Convert-DtsToEac3.ps1` | main script (Windows PowerShell 5.1+ and PowerShell 7) |
 | `Setup.ps1` | installs ffmpeg and MKVToolNix via winget |
+| `Messages.ps1` | console messages for each language and language selection |
 | `CHANGELOG.md` | change history, used for the release notes |
 | `build-release.ps1` | builds the release package |
 
 `.ps1` files must be saved as UTF-8 **with BOM** (otherwise PowerShell 5.1 garbles Polish characters),
-and `.cmd` files as plain ASCII. `.gitattributes` enforces CRLF line endings.
+and `.cmd` files as plain ASCII. All user-facing text belongs in `Messages.ps1`, not in the `.cmd` files. `.gitattributes` enforces CRLF line endings.
 
 **New release:**
 
@@ -136,7 +156,3 @@ and `.cmd` files as plain ASCII. `.gitattributes` enforces CRLF line endings.
 2. `.\build-release.ps1 -Version X.Y.Z` creates `dist\dts-to-eac3-vX.Y.Z.zip` and `dist\release-notes-vX.Y.Z.md`.
 3. `git tag vX.Y.Z` and `git push origin vX.Y.Z`.
 4. On GitHub: **Releases → Draft a new release**, pick the tag, paste the notes and attach the ZIP.
-
-## License
-
-[MIT](LICENSE)

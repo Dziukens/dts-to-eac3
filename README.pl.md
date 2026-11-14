@@ -13,6 +13,7 @@ nową ścieżkę E-AC3, którą potem dodajesz do filmu (remux), bez ponownego k
 - Obsługa przeciągnij-i-upuść, także kilku filmów naraz.
 - Sam instaluje brakujące narzędzia (ffmpeg, MKVToolNix) przez `winget`.
 - Działa na czystym Windowsie: nie wymaga PowerShell 7 ani zmiany polityki wykonywania skryptów.
+- Komunikaty w konsoli po polsku albo po angielsku ([patrz Język](#język)).
 
 ## Jak to działa
 
@@ -61,20 +62,40 @@ bo będzie potrzebna przy remuxie.
 
 ```powershell
 # lista ścieżek audio w pliku
-.\Convert-DtsToEac3.ps1 -InputFile "D:\Filmy\film.mkv" -ListTracks
+.\Convert-DtsToEac3.ps1 "D:\Filmy\film.mkv" -ListTracks
+
+# kilka plików naraz
+.\Convert-DtsToEac3.ps1 "D:\Filmy\a.mkv" "D:\Filmy\b.mkv"
 
 # konkretna ścieżka (Index z listy), inny bitrate i folder wyjściowy
-.\Convert-DtsToEac3.ps1 -InputFile "D:\Filmy\film.mkv" -TrackIndex 2 -Bitrate 1536k -OutDir "D:\Filmy\out"
+.\Convert-DtsToEac3.ps1 "D:\Filmy\film.mkv" -TrackIndex 2 -Bitrate 1536k -OutDir "D:\Filmy\out"
 ```
+
+Te same opcje działają też z `convert.cmd`, np. `convert.cmd "D:\Filmy\film.mkv" -Bitrate 1536k`.
 
 | Parametr | Domyślnie | Opis |
 |---|---|---|
-| `-InputFile` | (wymagany) | plik z filmem (MKV, M2TS, MP4…) |
+| `-InputFile` | pyta o ścieżkę | jeden lub kilka plików z filmami (MKV, M2TS, MP4…); nazwę parametru można pominąć |
 | `-TrackIndex` | pierwsza ścieżka DTS | indeks ścieżki z `-ListTracks`; może to być też ścieżka w innym formacie (np. TrueHD, FLAC) |
 | `-Bitrate` | `1024k` | `640k` (jakość streamingowa), `1024k` (bardzo dobra), `1536k` (jak DD+ na Blu-ray) |
 | `-OutDir` | `eac3_out\` obok filmu | folder wyjściowy |
 | `-ListTracks` | | tylko wypisuje ścieżki audio |
 | `-SkipExtract` | | koduje bezpośrednio z filmu, bez zapisywania `.dts` (oszczędza miejsce) |
+| `-Language` | `auto` | język komunikatów: `pl`, `en` albo `auto` |
+
+## Język
+
+Komunikaty w konsoli są dostępne po **polsku** i po **angielsku**. Język jest wybierany w tej kolejności:
+
+1. Parametr `-Language pl` / `-Language en`, np. `convert.cmd film.mkv -Language en`
+   albo `setup.cmd -Language en`.
+2. Zmienna środowiskowa `DTS_TO_EAC3_LANG`. Żeby ustawić ją na stałe (potem otwórz nowe okno):
+   ```bat
+   setx DTS_TO_EAC3_LANG en
+   ```
+3. Język interfejsu Windows: polski → `pl`, każdy inny → `en`.
+
+Nowy język dodasz, dopisując sekcję w [`Messages.ps1`](Messages.ps1). Brakujące teksty są brane z wersji angielskiej.
 
 ## Remux
 
@@ -123,11 +144,12 @@ a w `--track-order` zapis `1:0` oznacza „drugi plik, ścieżka 0”.
 | `convert.cmd`, `setup.cmd` | launchery: uruchamiają skrypty `.ps1` z `-ExecutionPolicy Bypass` |
 | `Convert-DtsToEac3.ps1` | główny skrypt (Windows PowerShell 5.1+ i PowerShell 7) |
 | `Setup.ps1` | instalacja ffmpeg i MKVToolNix przez winget |
+| `Messages.ps1` | komunikaty konsoli dla każdego języka i wybór języka |
 | `CHANGELOG.md` | historia zmian, z niej powstaje opis wydania |
 | `build-release.ps1` | buduje paczkę do wydania |
 
 Pliki `.ps1` muszą być zapisane w UTF-8 **z BOM** (inaczej PowerShell 5.1 psuje polskie znaki),
-a `.cmd` w czystym ASCII. Końce linii CRLF pilnuje `.gitattributes`.
+a `.cmd` w czystym ASCII. Wszystkie teksty dla użytkownika trzymaj w `Messages.ps1`, a nie w plikach `.cmd`. Końce linii CRLF pilnuje `.gitattributes`.
 
 **Nowe wydanie:**
 
@@ -135,7 +157,3 @@ a `.cmd` w czystym ASCII. Końce linii CRLF pilnuje `.gitattributes`.
 2. `.\build-release.ps1 -Version X.Y.Z` tworzy `dist\dts-to-eac3-vX.Y.Z.zip` i `dist\release-notes-vX.Y.Z.md`.
 3. `git tag vX.Y.Z` oraz `git push origin vX.Y.Z`.
 4. Na GitHubie: **Releases → Draft a new release**, wybierz tag, wklej opis i dołącz ZIP.
-
-## Licencja
-
-[MIT](LICENSE)
