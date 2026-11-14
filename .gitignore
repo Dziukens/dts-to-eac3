@@ -1,5 +1,6 @@
 # Pliki wynikowe i multimedia - nie trafiają do repozytorium
 eac3_out/
+dist/
 *.mkv
 *.mka
 *.m2ts

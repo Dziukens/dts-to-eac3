@@ -15,7 +15,9 @@ trafia do osobnego pliku `.eac3`, gotowego do remuxu.
 
 ## Szybki start
 
-1. Pobierz repozytorium: `git clone` albo **Code → Download ZIP**.
+1. Pobierz ZIP z najnowszego wydania w zakładce
+   [**Releases**](https://github.com/Dziukens/dts-to-eac3/releases/latest) i rozpakuj go
+   (albo użyj `git clone`).
    > Jeśli pobierasz ZIP: przed rozpakowaniem kliknij go prawym przyciskiem → **Właściwości** →
    > zaznacz **Odblokuj**. Inaczej Windows będzie pytał o zgodę przy każdym uruchomieniu.
 2. Uruchom **`setup.cmd`** (jednorazowo). Instaluje ffmpeg i MKVToolNix, a te już zainstalowane pomija.
@@ -87,3 +89,5 @@ Obraz i wszystkie napisy zostają.
 | `setup.cmd` | launcher instalacji narzędzi |
 | `Convert-DtsToEac3.ps1` | główny skrypt (PowerShell 5.1+) |
 | `Setup.ps1` | instalacja ffmpeg i MKVToolNix przez winget |
+| `CHANGELOG.md` | historia zmian, z niej powstaje opis wydania |
+| `build-release.ps1` | buduje paczkę do wydania: `.\build-release.ps1 -Version 1.0.0` → `dist\` |
